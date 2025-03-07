@@ -51,26 +51,23 @@ go run cmd/main.go
 
 ## Usage
 
-The CLI application provides the following commands:
+The bot provides the following commands:
 
 1. Add memo: Create a new memo with content and reminder time
-2. List pending memos: View all your pending memos
+2. List pending memos: View all your pending memos, and other member's pending memos within current channel
 3. Delete memo: Delete a specific memo by ID
-4. Exit: Close the application
 
 When adding a memo:
-- Enter the memo content (press Enter twice to finish)
+- Enter the memo content
 - Enter the reminder time in format: in natural language, like `in 5 min`, `today at 3pm`, or `YYYY-MM-DD HH:MM`
 
 The backend service will:
 - Check for pending reminders every minute
-- Display reminders in the terminal when their time comes
-- Process any missed reminders when started
+- Process any missed reminders at startup
 
 ## Database Schema
 
 The application uses two tables:
-- `users`: Stores user information (ID, username, preferred Discord channel)
 - `memos`: Stores memo content and reminder times (content, user ID, channel ID, reminder time)
 
 ## Configuration
