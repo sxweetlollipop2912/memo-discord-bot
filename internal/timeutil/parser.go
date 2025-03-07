@@ -21,9 +21,18 @@ func init() {
 }
 
 // ParseTime converts natural language time expressions into time.Time
-func ParseTime(input string) (time.Time, error) {
+func ParseTime(input string, timezone string) (time.Time, error) {
+	// Load timezone from config
+	loc, err := time.LoadLocation(timezone)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("failed to load timezone: %v", err)
+	}
+
+	// Use current time in configured timezone as base time
+	now := time.Now().In(loc)
+
 	// Parse the natural language time expression
-	result, err := w.Parse(input, time.Now())
+	result, err := w.Parse(input, now)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("could not parse time. You can write in natural language, like:\n- in 2 hours\n- tomorrow at 3pm\n- next friday at 2pm")
 	}

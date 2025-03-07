@@ -143,7 +143,7 @@ func (c *Client) handleMemoCommand(s *discordgo.Session, i *discordgo.Interactio
 	timeStr := options[1].StringValue()
 
 	// Parse relative and absolute time formats using timeutil package
-	remindAt, err := timeutil.ParseTime(timeStr)
+	remindAt, err := timeutil.ParseTime(timeStr, c.timezone)
 	if err != nil {
 		return "", fmt.Errorf("invalid time format (case-insensitive). Examples:\n- today at 3pm\n- tomorrow at 3pm\n- in 2 hours\n- next monday at 15:00\n- 2024-03-07 15:30")
 	}
