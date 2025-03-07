@@ -53,20 +53,22 @@ var commands = []*discordgo.ApplicationCommand{
 
 // Client represents a Discord client that handles all Discord-related operations
 type Client struct {
-	session *discordgo.Session
-	service *service.MemoService
+	session  *discordgo.Session
+	service  *service.MemoService
+	timezone string
 }
 
 // NewClient creates a new Discord client
-func NewClient(botToken string, service *service.MemoService) (*Client, error) {
+func NewClient(botToken string, service *service.MemoService, timezone string) (*Client, error) {
 	session, err := discordgo.New("Bot " + botToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Discord session: %w", err)
 	}
 
 	client := &Client{
-		session: session,
-		service: service,
+		session:  session,
+		service:  service,
+		timezone: timezone,
 	}
 
 	// Set up command handlers
@@ -163,10 +165,17 @@ func (c *Client) handleMemoCommand(s *discordgo.Session, i *discordgo.Interactio
 		displayContent = content[:47] + "..."
 	}
 
+	// Load configured timezone
+	loc, err := time.LoadLocation(c.timezone)
+	if err != nil {
+		log.Printf("Error loading timezone: %v, falling back to Local", err)
+		loc = time.Local
+	}
+
 	return fmt.Sprintf("✅ <@%s> created a memo: %s\n⏰ %s",
 		i.Member.User.ID,
 		displayContent,
-		remindAt.Format("Monday, January 2, 2006 at 15:04 MST")), nil
+		remindAt.In(loc).Format("Monday, January 2, 2006 at 15:04 MST")), nil
 }
 
 func (c *Client) handleListCommand(s *discordgo.Session, i *discordgo.InteractionCreate) (string, error) {
@@ -190,6 +199,13 @@ func (c *Client) handleListCommand(s *discordgo.Session, i *discordgo.Interactio
 		return "", err
 	}
 
+	// Load configured timezone
+	loc, err := time.LoadLocation(c.timezone)
+	if err != nil {
+		log.Printf("Error loading timezone: %v, falling back to Local", err)
+		loc = time.Local
+	}
+
 	var response strings.Builder
 
 	response.WriteString(fmt.Sprintf("**Current channel** · %d memo(s) from all users\n", len(allChannelMemos)))
@@ -201,7 +217,7 @@ func (c *Client) handleListCommand(s *discordgo.Session, i *discordgo.Interactio
 	} else {
 		for _, memo := range personalMemos {
 			response.WriteString(fmt.Sprintf("\n🔸 **Memo #%d**\n", memo.ID))
-			response.WriteString(fmt.Sprintf("⏰ %s\n", memo.RemindAt.In(time.Local).Format("Monday, January 2, 2006 at 15:04 MST")))
+			response.WriteString(fmt.Sprintf("⏰ %s\n", memo.RemindAt.In(loc).Format("Monday, January 2, 2006 at 15:04 MST")))
 			response.WriteString(fmt.Sprintf("📌 %s\n", memo.Content))
 			response.WriteString("───────────────────\n")
 		}
@@ -218,7 +234,7 @@ func (c *Client) handleListCommand(s *discordgo.Session, i *discordgo.Interactio
 				username = "Unknown User"
 			}
 			response.WriteString(fmt.Sprintf("\n🔹 **Memo #%d** by %s\n", memo.ID, username))
-			response.WriteString(fmt.Sprintf("⏰ %s\n", memo.RemindAt.In(time.Local).Format("Monday, January 2, 2006 at 15:04 MST")))
+			response.WriteString(fmt.Sprintf("⏰ %s\n", memo.RemindAt.In(loc).Format("Monday, January 2, 2006 at 15:04 MST")))
 			response.WriteString(fmt.Sprintf("📌 %s\n", memo.Content))
 			response.WriteString("───────────────────\n")
 		}
@@ -307,9 +323,18 @@ func (c *Client) Close() error {
 
 // SendReminder sends a reminder message to Discord
 func (c *Client) SendReminder(memo db.Memo) error {
+	// Load configured timezone
+	loc, err := time.LoadLocation(c.timezone)
+	if err != nil {
+		log.Printf("Error loading timezone: %v, falling back to Local", err)
+		loc = time.Local
+	}
+
 	// This message is public since it's the actual reminder
-	messageContent := fmt.Sprintf("🔔 **Memo**\n```\n%s\n```", memo.Content)
-	_, err := c.session.ChannelMessageSend(memo.DiscordChannelID, messageContent)
+	messageContent := fmt.Sprintf("🔔 **Memo** (scheduled for %s)\n```\n%s\n```",
+		memo.RemindAt.In(loc).Format("Monday, January 2, 2006 at 15:04 MST"),
+		memo.Content)
+	_, err = c.session.ChannelMessageSend(memo.DiscordChannelID, messageContent)
 	if err != nil {
 		return fmt.Errorf("failed to send Discord message: %w", err)
 	}

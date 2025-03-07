@@ -44,7 +44,7 @@ func main() {
 	memoService := service.NewMemoService(db)
 
 	// Set up Discord client
-	discordClient, err := discord.NewClient(cfg.Discord.BotToken, memoService)
+	discordClient, err := discord.NewClient(cfg.Discord.BotToken, memoService, cfg.App.Timezone)
 	if err != nil {
 		log.Fatalf("Failed to create Discord client: %v", err)
 	}
