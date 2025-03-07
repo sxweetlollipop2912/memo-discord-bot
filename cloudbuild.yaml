@@ -1,0 +1,34 @@
+steps:
+  # Create persistent disk if it doesn't exist
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'compute'
+      - 'disks'
+      - 'create'
+      - 'memo-db'
+      - '--size=10GB'
+      - '--zone=us-central1-a'
+      - '--type=pd-ssd'
+    id: 'create-disk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud compute disks create memo-db \
+          --size=10GB \
+          --zone=us-central1-a \
+          --type=pd-ssd || true
+
+  # Build and deploy using docker-compose
+  - name: 'docker/compose:2.23.1'
+    args: 
+      - '-f'
+      - 'docker-compose.yaml'
+      - 'up'
+      - '-d'
+      - '--build'
+    env:
+      - 'POSTGRES_DATA_DISK=memo-db'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   app:
     build: .
@@ -21,10 +23,16 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=memodb
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./internal/db/schema.sql:/docker-entrypoint-initdb.d/init.sql
+      - type: volume
+        source: postgres_data
+        target: /var/lib/postgresql/data
+        volume:
+          nocopy: true
     ports:
       - "5432:5432"
 
 volumes:
-  postgres_data: 
+  postgres_data:
+    driver: gcsfuse
+    driver_opts:
+      name: ${POSTGRES_DATA_DISK:-postgres-data} 
