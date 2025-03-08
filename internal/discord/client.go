@@ -103,12 +103,11 @@ func (c *Client) handleInteraction(s *discordgo.Session, i *discordgo.Interactio
 
 	var response string
 	var err error
-	var isEphemeral bool = true
+	var isEphemeral bool = true // Set default to ephemeral for all commands
 
 	switch data.Name {
 	case "memo":
 		response, err = c.handleMemoCommand(s, i)
-		isEphemeral = false // Make memo command response public
 	case "list":
 		response, err = c.handleListCommand(s, i)
 	case "delete":
@@ -117,7 +116,6 @@ func (c *Client) handleInteraction(s *discordgo.Session, i *discordgo.Interactio
 
 	if err != nil {
 		response = fmt.Sprintf("❌ %s", err)
-		isEphemeral = true // Always make error messages private
 	}
 
 	var flags discordgo.MessageFlags
